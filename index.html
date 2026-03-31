@@ -561,20 +561,12 @@ function colorToStatus(argb) {
   const b = parseInt(rgb.substr(4,2),16);
 
   // Very dark = working (black background)
-  if (r < 30 && g < 30 && b < 30) return 'working';
-  // Red dominant
-  if (r > 180 && g < 80 && b < 80) return 'holiday';
-  // Yellow (high R+G, low B)
-  if (r > 180 && g > 180 && b < 80) return 'vacation';
-  // Blue dominant
-  if (b > 180 && r < 80 && g < 80) return 'guard';
-  // Blue dominant (softer)
-  if (b > 150 && r < 100) return 'guard';
-  // Pink / magenta = trabaja
-  if (r > 180 && b > 100) return 'working';
-  // Green = sábado (ignorar como estado, solo es marca)
-  if (g > 180 && r < 100 && b < 100) return 'working';
-
+if (r < 30 && g < 30 && b < 30) return 'working';         // negro
+if (r > 180 && g < 80 && b < 80) return 'holiday';        // rojo
+if (r > 150 && g > 150 && b < 100) return 'vacation';     // amarillo (FFFF00, FFD700...)
+if (r > 150 && g > 120 && b < 60) return 'vacation';      // amarillo oscuro / ámbar
+if (b > 150 && r < 100) return 'guard';                   // azul
+if (g > 180 && r < 100 && b < 100) return 'ignore';       // verde (sábado)
   return 'working'; // fallback
 }
 

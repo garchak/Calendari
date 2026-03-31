@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Torn — Calendari de Guàrdies</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --accent: #e8ff47;
+    --accent2: #47b4ff;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --red: #ff4757;
+    --green: #2ed573;
+    --yellow: #ffa502;
+    --blue: #1e90ff;
+    --pink: #ff6b9d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* TOP BAR */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--accent);
+  }
+
+  .logo span {
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    letter-spacing: 2px;
+    display: block;
+    margin-top: -4px;
+  }
+
+  #notif-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #notif-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #notif-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.08); }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 24px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* DATE HERO */
+  .date-hero {
+    margin-bottom: 32px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .date-hero::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 150px; height: 150px;
+    background: radial-gradient(circle, rgba(232,255,71,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .date-hero .day-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -2px;
+  }
+
+  .date-hero .day-info {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .date-hero .nav-btns {
+    position: absolute;
+    top: 20px; right: 20px;
+    display: flex; gap: 8px;
+  }
+
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* SECTIONS */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* PERSON CARDS */
+  .people-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .person-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .person-card.working {
+    border-color: rgba(46, 213, 115, 0.3);
+  }
+
+  .person-card.off {
+    opacity: 0.5;
+  }
+
+  .person-card.guard {
+    border-color: rgba(30, 144, 255, 0.4);
+    background: rgba(30, 144, 255, 0.05);
+  }
+
+  .person-initials {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .person-card.working .person-initials { background: rgba(46,213,115,0.15); color: var(--green); }
+  .person-card.guard .person-initials { background: rgba(30,144,255,0.2); color: var(--blue); }
+  .person-card.vacation .person-initials { background: rgba(255,165,2,0.15); color: var(--yellow); }
+  .person-card.holiday .person-initials { background: rgba(255,71,87,0.15); color: var(--red); }
+
+  .person-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .person-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+
+  .status-working { background: rgba(46,213,115,0.12); color: var(--green); }
+  .status-guard { background: rgba(30,144,255,0.15); color: var(--blue); }
+  .status-vacation { background: rgba(255,165,2,0.12); color: var(--yellow); }
+  .status-holiday { background: rgba(255,71,87,0.12); color: var(--red); }
+  .status-unknown { background: rgba(90,90,122,0.2); color: var(--muted); }
+
+  /* UPLOAD SECTION */
+  #upload-section {
+    margin-bottom: 32px;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.03);
+  }
+
+  .upload-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%; height: 100%;
+  }
+
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .upload-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* PROGRESS */
+  #progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 16px;
+    overflow: hidden;
+    display: none;
+  }
+
+  #progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  /* STATUS MSG */
+  #status-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 12px;
+    letter-spacing: 1px;
+    min-height: 20px;
+  }
+
+  /* NOTIF TIME */
+  #notif-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    animation: slideDown 0.2s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .notif-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .notif-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    flex: 1;
+  }
+
+  #notif-time {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    outline: none;
+  }
+
+  #notif-time:focus { border-color: var(--accent); }
+
+  #save-notif-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #save-notif-btn:hover { opacity: 0.85; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .empty-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .summary-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .summary-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    border: 1px solid transparent;
+  }
+  .chip-working { background: rgba(46,213,115,0.1); color: var(--green); border-color: rgba(46,213,115,0.2); }
+  .chip-off { background: rgba(255,71,87,0.1); color: var(--red); border-color: rgba(255,71,87,0.2); }
+  .chip-guard { background: rgba(30,144,255,0.1); color: var(--blue); border-color: rgba(30,144,255,0.2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    TORN
+    <span>calendari de guàrdies</span>
+  </div>
+  <button id="notif-btn" title="Notificacions">🔔</button>
+</header>
+
+<main>
+
+  <!-- NOTIF PANEL -->
+  <div id="notif-panel">
+    <div class="notif-row">
+      <span class="notif-label">AVÍS DIARI A LES</span>
+      <input type="time" id="notif-time" value="07:00">
+      <button id="save-notif-btn">GUARDAR</button>
+    </div>
+  </div>
+
+  <!-- DATE HERO -->
+  <div class="date-hero">
+    <div class="nav-btns">
+      <button class="nav-btn" id="prev-day">‹</button>
+      <button class="nav-btn" id="today-btn" title="Avui">●</button>
+      <button class="nav-btn" id="next-day">›</button>
+    </div>
+    <div class="day-number" id="day-number">--</div>
+    <div class="day-info" id="day-info">carregant...</div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="upload-section">
+    <div class="section-label">IMPORTAR CALENDARI</div>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".ods,.xlsx,.xls">
+      <div class="upload-icon">📋</div>
+      <div class="upload-title">PUJAR ODS / EXCEL</div>
+      <div class="upload-sub">arrossega aquí o fes clic</div>
+    </div>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="status-msg"></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2ed573"></div>Treballa</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1e90ff"></div>Guàrdia</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6b9d"></div>Treballa (torn)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffa502"></div>Vacances</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff4757"></div>Festiu/Diumenge</div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-bar" id="summary-bar"></div>
+
+  <!-- PEOPLE -->
+  <div class="section-label" id="people-label" style="display:none">ESTAT DEL DIA</div>
+  <div class="people-grid" id="people-grid">
+    <div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <div class="empty-title">CAP CALENDARI</div>
+      <div class="empty-sub">puja un fitxer ODS o Excel per començar</div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<!-- SheetJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let calendarData = {}; // { "2025-08-05": { JM: "working", PF: "vacation", ... } }
+let people = [];
+let viewDate = new Date();
+let notifTime = localStorage.getItem('notifTime') || '07:00';
+let notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+
+// ─── COLOR → STATUS ──────────────────────────────────────────────────────────
+// Excel stores colors as ARGB hex strings in fill.fgColor.rgb
+function colorToStatus(argb) {
+  if (!argb) return 'working'; // negro / sin color = trabaja
+  const rgb = argb.replace(/^FF/i, '').toUpperCase();
+
+  // Exact matches first
+  const map = {
+    '000000': 'working',   // negro
+    'FF0000': 'holiday',   // rojo puro
+    'FFFF00': 'vacation',  // amarillo puro
+    '0000FF': 'guard',     // azul puro
+    'FF00FF': 'working',   // magenta/rosa = trabaja
+    'FF6B9D': 'working',
+    'FF69B4': 'working',
+    'FFC0CB': 'working',
+    'FFB6C1': 'working',
+  };
+  if (map[rgb]) return map[rgb];
+
+  // Heuristic by dominant channel
+  const r = parseInt(rgb.substr(0,2),16);
+  const g = parseInt(rgb.substr(2,2),16);
+  const b = parseInt(rgb.substr(4,2),16);
+
+  // Very dark = working (black background)
+  if (r < 30 && g < 30 && b < 30) return 'working';
+  // Red dominant
+  if (r > 180 && g < 80 && b < 80) return 'holiday';
+  // Yellow (high R+G, low B)
+  if (r > 180 && g > 180 && b < 80) return 'vacation';
+  // Blue dominant
+  if (b > 180 && r < 80 && g < 80) return 'guard';
+  // Blue dominant (softer)
+  if (b > 150 && r < 100) return 'guard';
+  // Pink / magenta = trabaja
+  if (r > 180 && b > 100) return 'working';
+  // Green = sábado (ignorar como estado, solo es marca)
+  if (g > 180 && r < 100 && b < 100) return 'working';
+
+  return 'working'; // fallback
+}
+
+// ─── MONTH NAME → NUMBER ─────────────────────────────────────────────────────
+const MONTHS = {
+  'GENER':1,'FEBRER':2,'MARÇ':3,'ABRIL':4,'MAIG':5,'JUNY':6,
+  'JULIOL':7,'AGOST':8,'SETEMBRE':9,'OCTUBRE':10,'NOVEMBRE':11,'DESEMBRE':12,
+  'ENERO':1,'FEBRERO':2,'MARZO':3,'MAYO':5,'JUNIO':6,'JULIO':7,
+  'AGOSTO':8,'SEPTIEMBRE':9,'OCTUBRE':10,'NOVIEMBRE':11,'DICIEMBRE':12,
+  'JANUARY':1,'FEBRUARY':2,'MARCH':3,'APRIL':4,'MAY':5,'JUNE':6,
+  'JULY':7,'AUGUST':8,'SEPTEMBER':9,'OCTOBER':10,'NOVEMBER':11,'DECEMBER':12
+};
+
+// ─── PARSE ODS/XLSX ───────────────────────────────────────────────────────────
+function parseWorkbook(wb) {
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+
+  calendarData = {};
+  people = [];
+  const peopleSet = new Set();
+
+  let currentMonth = null;
+  let currentYear = new Date().getFullYear();
+  let dayRow = null;       // row index where day numbers are
+  let personRows = [];     // [{row, name}]
+
+  for (let R = range.s.r; R <= range.e.r; R++) {
+    const firstCell = ws[XLSX.utils.encode_cell({r:R, c:0})]
+                   || ws[XLSX.utils.encode_cell({r:R, c:1})];
+
+    // Detect month header rows (merged cells with month name)
+    // Scan entire row for a month name
+    let foundMonth = false;
+    for (let C = range.s.c; C <= Math.min(range.e.c, 5); C++) {
+      const cell = ws[XLSX.utils.encode_cell({r:R, c:C})];
+      if (cell && cell.v) {
+        const val = String(cell.v).trim().toUpperCase();
+        if (MONTHS[val]) {
+          currentMonth = MONTHS[val];
+          dayRow = null;
+          personRows = [];
+          foundMonth = true;
+          break;
+        }
+      }
+    }
+    if (foundMonth) continue;
+
+    if (currentMonth === null) continue;
+
+    // Detect day-number row: first non-empty cell in cols 1+ is a number 1-31
+    // and there are many numeric cells in a row
+    if (dayRow === null) {
+      let numCount = 0;
+      let firstNum = null;
+      for (let C = 1; C <= range.e.c; C++) {
+        const cell = ws[XLSX.utils.encode_cell({r:R, c:C})];
+        if (cell && typeof cell.v === 'number' && cell.v >= 1 && cell.v <= 31) {
+          numCount++;
+          if (firstNum === null) firstNum = cell.v;
+        }
+      }
+      if (numCount >= 20 && firstNum === 1) {
+        dayRow = R;
+        continue;
+      }
+    }
+
+    if (dayRow === null) continue;
+
+    // Detect person rows: col 0 has a short string (initials/name)
+    const nameCell = ws[XLSX.utils.encode_cell({r:R, c:0})];
+    if (nameCell && nameCell.v && typeof nameCell.v === 'string' && nameCell.v.trim().length >= 2 && nameCell.v.trim().length <= 6) {
+      const name = nameCell.v.trim();
+      personRows.push({row: R, name});
+      if (!peopleSet.has(name)) {
+        peopleSet.add(name);
+        people.push(name);
+      }
+
+      // Now map days for this person
+      for (let C = 1; C <= range.e.c; C++) {
+        const dayCell = ws[XLSX.utils.encode_cell({r:dayRow, c:C})];
+        if (!dayCell || typeof dayCell.v !== 'number') continue;
+        const day = dayCell.v;
+        if (day < 1 || day > 31) continue;
+
+        // Build date string
+        const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+        // Get cell color
+        const personCell = ws[XLSX.utils.encode_cell({r:R, c:C})];
+        let status = 'working';
+
+        if (personCell) {
+          // Try to get fill color from cell style
+          const cellRef = XLSX.utils.encode_cell({r:R, c:C});
+          const style = ws[cellRef] && ws[cellRef].s;
+          if (style && style.fgColor && style.fgColor.rgb) {
+            status = colorToStatus(style.fgColor.rgb);
+          } else if (style && style.bgColor && style.bgColor.rgb) {
+            status = colorToStatus(style.bgColor.rgb);
+          } else if (!personCell.v && personCell.v !== 0) {
+            // empty cell = black = working
+            status = 'working';
+          }
+        }
+
+        if (!calendarData[dateStr]) calendarData[dateStr] = {};
+        calendarData[dateStr][name] = status;
+      }
+    }
+  }
+
+  // Save to localStorage
+  localStorage.setItem('calendarData', JSON.stringify(calendarData));
+  localStorage.setItem('people', JSON.stringify(people));
+}
+
+// ─── LOAD FROM LOCALSTORAGE ───────────────────────────────────────────────────
+function loadFromStorage() {
+  const saved = localStorage.getItem('calendarData');
+  const savedPeople = localStorage.getItem('people');
+  if (saved) calendarData = JSON.parse(saved);
+  if (savedPeople) people = JSON.parse(savedPeople);
+}
+
+// ─── RENDER DAY ───────────────────────────────────────────────────────────────
+const DAY_NAMES = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
+const MONTH_NAMES = ['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+
+const STATUS_LABELS = {
+  working: 'Treballa',
+  guard: 'Guàrdia',
+  vacation: 'Vacances',
+  holiday: 'Festiu',
+  unknown: '—'
+};
+
+function renderDay() {
+  const d = viewDate;
+  document.getElementById('day-number').textContent = String(d.getDate()).padStart(2,'0');
+  document.getElementById('day-info').textContent =
+    `${DAY_NAMES[d.getDay()]} · ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const dayData = calendarData[dateStr] || {};
+  const grid = document.getElementById('people-grid');
+  const summaryBar = document.getElementById('summary-bar');
+  const label = document.getElementById('people-label');
+
+  if (people.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <div class="empty-title">CAP CALENDARI</div>
+      <div class="empty-sub">puja un fitxer ODS o Excel per començar</div>
+    </div>`;
+    summaryBar.innerHTML = '';
+    label.style.display = 'none';
+    return;
+  }
+
+  label.style.display = 'block';
+
+  // Count
+  let nWork=0, nOff=0, nGuard=0;
+  people.forEach(p => {
+    const s = dayData[p] || 'unknown';
+    if (s === 'working') nWork++;
+    else if (s === 'guard') { nGuard++; }
+    else if (s === 'vacation' || s === 'holiday') nOff++;
+  });
+
+  summaryBar.innerHTML = `
+    <div class="summary-chip chip-working">✓ ${nWork + nGuard} treballen</div>
+    ${nGuard > 0 ? `<div class="summary-chip chip-guard">⚡ ${nGuard} guàrdia</div>` : ''}
+    <div class="summary-chip chip-off">✗ ${nOff} no treballen</div>
+  `;
+
+  // Sort: working first, then guard, then off
+  const sorted = [...people].sort((a,b) => {
+    const order = {working:0, guard:1, vacation:2, holiday:3, unknown:4};
+    return (order[dayData[a]||'unknown']||4) - (order[dayData[b]||'unknown']||4);
+  });
+
+  grid.innerHTML = sorted.map(name => {
+    const status = dayData[name] || 'unknown';
+    const cardClass = status === 'guard' ? 'guard' : (status === 'working' ? 'working' : 'off');
+    const initialsClass = status;
+    const statusClass = `status-${status}`;
+    return `<div class="person-card ${cardClass}">
+      <div class="person-initials ${initialsClass}">${name}</div>
+      <div class="person-name">${name}</div>
+      <div class="person-status ${statusClass}">${STATUS_LABELS[status] || status}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  const msg = document.getElementById('status-msg');
+  const pb = document.getElementById('progress-bar');
+  const pf = document.getElementById('progress-fill');
+
+  pb.style.display = 'block';
+  pf.style.width = '10%';
+  msg.textContent = 'llegint fitxer...';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pf.style.width = '50%';
+    msg.textContent = 'processant colors...';
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {
+        type: 'array',
+        cellStyles: true,
+        cellNF: true,
+        sheetStubs: true
+      });
+      pf.style.width = '80%';
+      parseWorkbook(wb);
+      pf.style.width = '100%';
+      const total = Object.keys(calendarData).length;
+      msg.textContent = `✓ ${total} dies carregats · ${people.length} persones`;
+      showToast(`Calendari carregat: ${people.length} persones`);
+      renderDay();
+      setTimeout(() => { pb.style.display = 'none'; }, 1500);
+    } catch(err) {
+      msg.textContent = '⚠ Error llegint el fitxer: ' + err.message;
+      pb.style.display = 'none';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
+
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+document.getElementById('prev-day').addEventListener('click', () => {
+  viewDate.setDate(viewDate.getDate() - 1); renderDay();
+});
+document.getElementById('next-day').addEventListener('click', () => {
+  viewDate.setDate(viewDate.getDate() + 1); renderDay();
+});
+document.getElementById('today-btn').addEventListener('click', () => {
+  viewDate = new Date(); renderDay();
+});
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+const notifBtn = document.getElementById('notif-btn');
+const notifPanel = document.getElementById('notif-panel');
+document.getElementById('notif-time').value = notifTime;
+
+notifBtn.addEventListener('click', () => {
+  const open = notifPanel.style.display === 'block';
+  notifPanel.style.display = open ? 'none' : 'block';
+});
+
+if (notifEnabled) notifBtn.classList.add('active');
+
+document.getElementById('save-notif-btn').addEventListener('click', async () => {
+  notifTime = document.getElementById('notif-time').value;
+  localStorage.setItem('notifTime', notifTime);
+
+  if ('Notification' in window) {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      notifEnabled = true;
+      localStorage.setItem('notifEnabled', 'true');
+      notifBtn.classList.add('active');
+      scheduleNotification();
+      showToast(`Avís configurat a les ${notifTime}`);
+      notifPanel.style.display = 'none';
+    } else {
+      showToast('Notificacions no permeses');
+    }
+  } else {
+    showToast('Notificacions no disponibles');
+  }
+});
+
+function scheduleNotification() {
+  if (!notifEnabled || !('serviceWorker' in navigator)) return;
+  const [h, m] = notifTime.split(':').map(Number);
+  const now = new Date();
+  const next = new Date();
+  next.setHours(h, m, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const ms = next - now;
+
+  setTimeout(() => {
+    sendDailyNotification();
+    // Re-schedule for next day
+    setInterval(sendDailyNotification, 24 * 60 * 60 * 1000);
+  }, ms);
+}
+
+function sendDailyNotification() {
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const dayData = calendarData[dateStr] || {};
+
+  const off = people.filter(p => {
+    const s = dayData[p];
+    return s === 'vacation' || s === 'holiday';
+  });
+
+  const body = off.length > 0
+    ? `No treballen: ${off.join(', ')}`
+    : 'Tothom treballa avui';
+
+  new Notification('Torn — ' + DAY_NAMES[d.getDay()], { body, icon: 'icon-192.png' });
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── SERVICE WORKER ───────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadFromStorage();
+renderDay();
+if (notifEnabled) scheduleNotification();
+</script>
+</body>
+</html>
